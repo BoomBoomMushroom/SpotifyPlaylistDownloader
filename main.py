@@ -119,7 +119,7 @@ def threadDownload(i):
     bestTimeDiff = None
     for result in results:
         timeDiff = abs(songLength - result["Length"])
-        if timeDiff <= 1.5: timeDiff = 0 # We can excuse +/- 1.5 seconds
+        if timeDiff <= 1.5: timeDiff = 0 # We can excuse ± 1.5 seconds
         
         if bestResultURL == None or timeDiff < bestTimeDiff:
             bestResultURL = result["URL"]
