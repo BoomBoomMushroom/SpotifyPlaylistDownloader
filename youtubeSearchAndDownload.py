@@ -30,12 +30,6 @@ def searchForVideos(searchText):
     
     return searchResultVideos
 
-def progress_func(a, b, c):
-    print(c)
-
-def complete_func(a, b):
-    pass
-
 def downloadVideo(videoURL, outputDir="./songs", fileName=""):
     yt = pytube.YouTube(videoURL)
     videoStreams = yt.streams.filter(only_audio=True)
@@ -53,8 +47,3 @@ def downloadVideo(videoURL, outputDir="./songs", fileName=""):
     new_file = base + '.mp3'
     os.rename(out_file, new_file)
     return True
-
-
-if __name__ == "__main__":
-    pass
-    #downloadVideo("https://youtube.com/watch?v=-dzkO8KbEeM&pp=ygUsQmlnIFBpbmsgQnViYmxlIGJ5IEJlYWNoIEJ1bm55IE9mZmljYWwgQXVkaW8%3D", fileName="BB")
