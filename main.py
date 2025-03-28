@@ -2,12 +2,15 @@ import requests
 import json
 import concurrent.futures
 import time
+import os
 
 with open("secrets.json", "r") as secretsFile:
     secrets = json.load(secretsFile)
 
 outputDir = input("Where do we save the songs to? (default is just /songs of this file)\n")
 if outputDir == "": outputDir = "./songs"
+
+doConvertToMP3 = input("Do you want to automatically convert the files into MP3s instead of M4As? (requires FFMpeg to be installed) y/n\n").lower() == "y"
 
 doPlaylistURL = False
 while True:
@@ -87,17 +90,53 @@ if doPlaylistURL:
 else:
     songsInPlaylist = getSongsData(accessToken, songLinks)["tracks"]
 
+def listToEnglish(names):
+    if not names:
+        return ""
+    elif len(names) == 1:
+        return names[0]
+    elif len(names) == 2:
+        return f"{names[0]} and {names[1]}"
+    else:
+        return f"{', '.join(names[:-1])}, and {names[-1]}"
+
+def removeNonFileCharacters(string: str):
+    notAllowed = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|"]
+    return ''.join(c for c in string if c not in notAllowed)
+
+songFileNameToMP3Data = {}
+
 songFileNames = []
 songSearchTerms = []
 songLengths = []
 for song in songsInPlaylist:
     songName = song["name"]
-    songArtist = song["artists"][0]["name"]
+    songArtistNameList = []
+    for artist in song["artists"]:
+        songArtistNameList.append(artist["name"])
+    artistToPutInFileName = songArtistNameList[0]
+    albumName = song["album"]["name"]
+    
+    songArtists = listToEnglish(songArtistNameList)
     songLength = song["duration_ms"] / 1000 # in seconds
     
-    songFileNames.append(f"{songName}_{songArtist}")
-    songSearchTerms.append(f"{songName} by {songArtist}")
+    # Remove all non windows file name allowed characters
+    # We use the filename to get a key later, and it can be different if we use disallowed characters
+    songFileName = f"{songName}_{artistToPutInFileName}"
+    songFileName = removeNonFileCharacters(songFileName)
+    
+    songFileNames.append(songFileName)
+    songSearchTerms.append(f"{songName} by {artistToPutInFileName}")
     songLengths.append(songLength)
+    
+    songFileNameToMP3Data[songFileName] = {
+        "Artists": songArtists,
+        "SongName": songName,
+        "AlbumName": albumName
+    }
+    
+    print(f"Meta key made: {songFileName}")
+
 
 #print(songSearchTerms)
 
@@ -148,3 +187,31 @@ while True:
     print(", ".join(notComplete))
 
 print("Done downloading playlist!")
+
+import m4a_to_mp3
+import MP3MetadataAdder
+
+if doConvertToMP3:
+    print("Now converting playlist...")
+    m4a_to_mp3.convert_all_m4a(outputDir, outputDir)
+    m4a_to_mp3.deleteAllM4As(outputDir)
+    print("Done converting! Now adding metadata")
+    
+    for filename in os.listdir(outputDir):
+        if filename.endswith("mp3") == False: continue
+        filePath = os.path.join(outputDir, filename)
+        
+        metaKey = filename.split(".mp3")[0]
+        
+        #print(songFileNameToMP3Data.keys())
+        print(f"Trying to add metadata using key {metaKey}")
+        MP3MetadataAdder.add_metadata(
+            filePath,
+            songFileNameToMP3Data[metaKey]["Artists"],
+            songFileNameToMP3Data[metaKey]["SongName"],
+            songFileNameToMP3Data[metaKey]["AlbumName"],
+        )
+        print("Done adding metadata")
+        
+print("Finished everything!")
+

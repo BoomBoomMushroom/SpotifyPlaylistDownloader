@@ -43,7 +43,11 @@ def downloadVideo(videoURL, outputDir="./songs", fileName=""):
     
     out_file = video.download(outputDir, fileName)
     
+    """
+    # For some reason the downloaded file has to extention (causing songs like "Ms. California" and "Mr. Brightside" to be saved as "Ms.m4a" and "Mr.m4a" respectively)
     base, ext = os.path.splitext(out_file)
-    new_file = base + '.mp3'
-    os.rename(out_file, new_file)
+    new_file = base + '.m4a'
+    """
+    
+    os.rename(out_file, out_file + ".m4a")
     return True
